@@ -54,15 +54,16 @@ public class UserServiceImpl implements UserService
     {
         log.info("Saving new account user, {}", userDto.getEmail());
         Optional<AccountUser> user = userRepository.findByEmail(userDto.getEmail());
+        Optional<Role> role = Optional.ofNullable(roleRepository.findByName("USER").orElseThrow(() -> new RoleNotFountException("Role specified not found")));
         if(user.isEmpty())
         {
             userDto.setPassword(passwordEncoder.encode(userDto.getPassword()));
             AccountUser userToSave = mapper.map(userDto, AccountUser.class);
             userToSave.setTransactionLevel(TransactionLevel.LEVEL_ONE_ALL);
             userToSave.setAccountVerified(true);
-//            Collection<Role> roles = new ArrayList<>();
-//            roles.add(new Role("USER"));
-//            userToSave.setRoles(roles);
+            Set<Role> roles = new HashSet<>();
+            roles.add(role.get());
+            userToSave.setRoles(roles);
             userRepository.save(userToSave);
             System.out.println(userToSave.getId());
 
@@ -160,28 +161,6 @@ public class UserServiceImpl implements UserService
             roles.add(role);
             user.setRoles(roles);
         }
-
-//        private void setRole(ProfileSetupDto setupDto, User updatedUser) {
-//        for (String roleTitle: setupDto.getRoleTitles()) {
-//            Optional<Role> optionalRole = roleRepository.findRoleByRoleTitle(roleTitle);
-//            Role role;
-//            if (optionalRole.isPresent()) {
-//                role = optionalRole.get();
-//            } else {
-//                role = new Role();
-//                role.setRoleTitle(roleTitle);
-//                roleRepository.save(role);
-//            }
-//            Set<Role> roles;
-//            if (updatedUser.getRoles() == null || updatedUser.getRoles().isEmpty()) {
-//                roles = new HashSet<>();
-//            } else {
-//                roles = updatedUser.getRoles();
-//            }
-//            roles.add(role);
-//            updatedUser.setRoles(roles);
-//        }
-//    }
         return "Role added successfully";
     }
 
@@ -192,8 +171,7 @@ public class UserServiceImpl implements UserService
         log.info("Fetching a particular user by email, {}", userEmail);
         AccountUser user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() ->new UserWithEmailNotFound("User with email "+userEmail+ "was not found"));
-        AccountUserDto userFound = mapper.map(user, AccountUserDto.class);
-        return userFound;
+        return mapper.map(user, AccountUserDto.class);
     }
 
     @Override
@@ -205,9 +183,10 @@ public class UserServiceImpl implements UserService
     }
 
     @Override
-    @CachePut(cacheNames = "wallet-topup", key = "#waletId")
-    public TopUpDto topUpWalletBalance (TopUpDto topUpDto)
+    @CachePut(cacheNames = "wallet-top-up")
+    public Transaction topUpWalletBalance (TopUpDto topUpDto)
     {
+        Transaction userTransaction;
     UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
             .getPrincipal();
     String email = userDetails.getUsername();
@@ -218,7 +197,6 @@ public class UserServiceImpl implements UserService
                 .orElseThrow(() -> new UserWithEmailNotFound("Wallet was not found")));
 
         TopUpDto transactionDone = new TopUpDto();
-        transactionDone.setAccountHolderId(user.getId());
         if(Objects.equals(walletToTopUp.get().getTransactionPin(), "0000"))
         {
             throw new WrongTransactionPin("For your security, you need to change your transaction pin before any transaction.");
@@ -246,21 +224,23 @@ public class UserServiceImpl implements UserService
                 }
             } else if (userLevel.equals(TransactionLevel.LEVEL_THREE_GOLD))
             {
-                if(topUpDto.getAmount()>=50 && topUpDto.getAmount()<=1000000000);
-                createTransactionSummary(walletToTopUp, topUpDto, transactionDone);
+                if(topUpDto.getAmount()>=50 && topUpDto.getAmount()<=1000000000)
+                {
+                    createTransactionSummary(walletToTopUp, topUpDto, transactionDone);
+                }
             } else
             {
                 throw new AmountTooSmallOrBiggerException("Amount to topUp cannot be less than N50 and Not more than 1000000000 ");
             }
             String date = setDateAndTimeForTransaction();
-            Transaction userTransaction = generateTransactionSummary(topUpDto, walletToTopUp.get(), date);
+            userTransaction = generateTransactionSummary(topUpDto, walletToTopUp.get(), date);
             transactionDone = mapper.map(userTransaction, TopUpDto.class);
         } else
         {
             throw new WrongTransactionPin("You have entered a wrong transaction pin! ");
         }
 
-        return transactionDone;
+        return userTransaction;
     }
 
 
@@ -434,7 +414,7 @@ public class UserServiceImpl implements UserService
         sendersWallet.get().setWalletBalance(newSenderBalance);
         walletRepository.save(sendersWallet.get());
         receiversWallet.get().setWalletBalance(newReceiversBalance);
-        walletRepository.save(sendersWallet.get());
+        walletRepository.save(receiversWallet.get());
     }
 
     private Transaction getWithdrawalSummary(Optional<Wallet> sendersWallet, Transaction transaction, WithdrawalDto transactionDone)
@@ -469,10 +449,14 @@ public class UserServiceImpl implements UserService
     public String changeTransactionPin(ChangeTransactionPinDto changeTransactionPinDto)
     {
         log.info("Changing my wallet transaction pin");
-        Wallet walletToChangeTransactionPin = (walletRepository.findByAccountHolderId(changeTransactionPinDto.getAccountHolderId())
-                .orElseThrow(() -> new UserWithEmailNotFound("Wallet was not found")));
-        AccountUser user = userRepository.findById(changeTransactionPinDto.getAccountHolderId())
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
+                .getPrincipal();
+        String email = userDetails.getUsername();
+        AccountUser user = userRepository.findByEmail(email)
                 .orElseThrow(() ->new UserWithEmailNotFound("Use was not found"));
+
+        Wallet walletToChangeTransactionPin = (walletRepository.findByAccountHolderId(user.getId())
+                .orElseThrow(() -> new UserWithEmailNotFound("Wallet was not found")));
 
         walletToChangeTransactionPin.setTransactionPin(changeTransactionPinDto.getNewPin());
         walletRepository.save(walletToChangeTransactionPin);
@@ -537,12 +521,42 @@ public class UserServiceImpl implements UserService
         return levelUpdated.toString();
     }
 
+    @Override
+    public AccountDetailsForUserDto getMyAccountDetails() {
+        log.info("Fetching my account details");
+        AccountDetailsForUserDto myDetails = new AccountDetailsForUserDto();
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
+                .getPrincipal();
+        String email = userDetails.getUsername();
+        AccountUser user = userRepository.findByEmail(email).orElseThrow(() -> new UserWithEmailNotFound("USER_NOT_FOUND"));
+        Optional<Wallet> userWallet = Optional.ofNullable(walletRepository.findByAccountHolderId(user.getId())
+                .orElseThrow(() -> new UserWithEmailNotFound("Wallet was not found")));
+        KYC userKyc = kycRepository.findByAccountHolderId(user.getId());
+
+        if (userKyc.getId() == null) {
+            throw new KycNotFoundException("User KYC was not found pin! ");
+        } else {
+
+             myDetails = AccountDetailsForUserDto.builder()
+                    .AccountHolderFullName(user.getFirstName()+" " +user.getLastName())
+                    .email(user.getEmail())
+                    .walletAccountNumber(userWallet.get().getWalletAccountNumber())
+                    .walletBalance(""+userWallet.get().getWalletBalance())
+                    .bVN(userKyc.getBVN())
+                    .driverKYCLicence(userKyc.getDriverLicence())
+                    .passportKYCUrl(userKyc.getPassportUrl())
+                    .approvedLevel(user.getTransactionLevel().name())
+                    .build();
+        }
+        return myDetails;
+    }
+
     private Transaction generateTransactionSummary(TopUpDto topUpDto, Wallet walletToTopUp, String date) {
         Transaction userTransaction = Transaction.builder()
                 .transactionAmount(topUpDto.getAmount())
                 .transactionStatus(TransactionStatus.SUCCESSFUL)
                 .transactionType(TransactionType.DEPOSIT)
-                .userId(topUpDto.getAccountHolderId())
+//                .userId(topUpDto.getAccountHolderId())
                 .walletId(walletToTopUp.getId())
                 .dateAndTimeForTransaction(date)
                 .Summary(topUpDto.getTransactionSummary())
@@ -553,7 +567,7 @@ public class UserServiceImpl implements UserService
 
     private String setDateAndTimeForTransaction() {
         String pattern = "dd MMMMM yyyy HH:mm:ss.zzz";
-        SimpleDateFormat simpleDateFormat =new SimpleDateFormat(pattern, new Locale("fr", "FR"));
+        SimpleDateFormat simpleDateFormat =new SimpleDateFormat(pattern, new Locale("en", "UK"));
         String date = simpleDateFormat.format(new Date());
         return date;
     }

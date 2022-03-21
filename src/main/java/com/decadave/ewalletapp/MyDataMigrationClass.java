@@ -3,7 +3,6 @@ package com.decadave.ewalletapp;
 
 import com.decadave.ewalletapp.KYC.KYCEntity;
 import com.decadave.ewalletapp.KYC.KYCEntityRepository;
-import com.decadave.ewalletapp.KYC.KycRepository;
 import com.decadave.ewalletapp.accountUser.AccountUser;
 import com.decadave.ewalletapp.accountUser.AccountUserRepository;
 import com.decadave.ewalletapp.role.Role;
@@ -15,7 +14,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -50,7 +52,7 @@ public class MyDataMigrationClass
                     .firstName("David")
                     .gender(Gender.MALE)
                     .lastName("Baba")
-                    .password(passwordEncoder.encode("12345dsa"))
+                    .password(passwordEncoder.encode("12345"))
                     .transactionLevel(TransactionLevel.LEVEL_TWO_SILVER)
                     .isAccountVerified(true)
                     .roles(adminROle)

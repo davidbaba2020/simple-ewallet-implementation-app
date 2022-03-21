@@ -12,6 +12,4 @@ import lombok.Setter;
 public class ChangeTransactionPinDto
 {
     private String newPin;
-    private String accountPassword;
-    private Long accountHolderId;
 }

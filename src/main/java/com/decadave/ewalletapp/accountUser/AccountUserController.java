@@ -35,7 +35,7 @@ public class AccountUserController
     }
 
     @PutMapping("/user/top-up-wallet-balance")
-    public ResponseEntity<TopUpDto> topUpAccount (@RequestBody TopUpDto topUpDto)
+    public ResponseEntity<Transaction> topUpAccount (@RequestBody TopUpDto topUpDto)
     {
         return new ResponseEntity<>(userService.topUpWalletBalance(topUpDto), HttpStatus.OK);
     }
@@ -63,6 +63,12 @@ public class AccountUserController
     public ResponseEntity<String> doYourKycAndUpgradeLevel (@RequestBody KycDto kycDto)
     {
         return new ResponseEntity<>(userService.doKycDocumentation(kycDto), HttpStatus.OK);
+    }
+
+    @GetMapping("/my-account-summary")
+    public ResponseEntity<AccountDetailsForUserDto> getAccountSummary ()
+    {
+        return new ResponseEntity<>(userService.getMyAccountDetails(), HttpStatus.OK);
     }
 
 

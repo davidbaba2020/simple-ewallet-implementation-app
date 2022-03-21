@@ -51,7 +51,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 //                .antMatchers("/login", "/user/**","/create-account","/role/save","/top-up-wallet-balance","/withdrawal-from-wallet"
 //                        ,"/transfer-from-wallet","/change-transaction-pin","/kyc-upgrade-level","/swagger-resources/**"
 //                        ,"/v2/api-docs/**", "/swagger-ui/**").permitAll()
-//                .antMatchers("/admin/**").hasAuthority("ADMIN")
+                .antMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
+//                .antMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated().and()
                 .exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);

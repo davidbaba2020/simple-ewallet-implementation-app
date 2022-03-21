@@ -22,10 +22,11 @@ public interface UserService
     String addROleTOUser(AddRoleToUserDto addRoleToUserDto);
     AccountUserDto getUser(String userId);
     List<AccountUser> AccountUsers();
-    TopUpDto topUpWalletBalance(TopUpDto topUpDto);
+    Transaction topUpWalletBalance(TopUpDto topUpDto);
     Transaction withdrawal(WithdrawalDto withdrawalDto);
     TransactionDto transferMoney (TransferDto transferDto);
     String changeTransactionPin (ChangeTransactionPinDto changeTransactionPinDto);
     String doKycDocumentation (KycDto kycDto);
     String kycApprovalByAdmin (KycAdminVerificationDto kycAdminVerificationDto);
+    AccountDetailsForUserDto getMyAccountDetails();
 }

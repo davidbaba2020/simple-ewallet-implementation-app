@@ -15,7 +15,7 @@ import javax.persistence.Enumerated;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AccountUserDto extends BaseClass
+public class AccountUserDto
 {
     private String email;
     private String firstName;
