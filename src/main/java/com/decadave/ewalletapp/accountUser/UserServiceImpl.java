@@ -101,6 +101,9 @@ public class UserServiceImpl implements UserService
     {
         KYC userKyc = KYC.builder()
                 .accountHolderId(userAccountCreation.getId())
+                .bVN("")
+                .driverLicence("")
+                .passportUrl("")
                 .build();
         kycRepository.save(userKyc);
         return userKyc;
@@ -234,7 +237,6 @@ public class UserServiceImpl implements UserService
             }
             String date = setDateAndTimeForTransaction();
             userTransaction = generateTransactionSummary(topUpDto, walletToTopUp.get(), date);
-            transactionDone = mapper.map(userTransaction, TopUpDto.class);
         } else
         {
             throw new WrongTransactionPin("You have entered a wrong transaction pin! ");
@@ -310,7 +312,7 @@ public class UserServiceImpl implements UserService
 
     @Override
     @CachePut(cacheNames = "transfer-money")
-    public TransactionDto transferMoney(TransferDto transferDto)
+    public Transaction transferMoney(TransferDto transferDto)
     {
         log.info("Transfer of currency");
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
@@ -378,7 +380,14 @@ public class UserServiceImpl implements UserService
             throw new WrongTransactionPin("You have entered a wrong transaction pin! ");
 
         }
-        return transactionDto;
+        Transaction transactionSum = mapper.map(transactionDto, Transaction.class);
+        transactionSum.setUserId(sender.getId());
+        transactionSum.setWalletId(sendersWallet.get().getId());
+        transactionSum.setTransactionAmount(transferDto.getAmount());
+        transactionRepository.save(transactionSum);
+
+
+        return transactionSum;
     }
 
     private TransactionDto getTransactionDto(TransferDto transferDto, TransactionDto transactionDto, Optional<Wallet> sendersWallet)
@@ -426,7 +435,7 @@ public class UserServiceImpl implements UserService
                 .transactionAmount(transactionDone.getAmount())
                 .transactionStatus(TransactionStatus.SUCCESSFUL)
                 .transactionType(TransactionType.WITHDRAWALS)
-                .userId(transaction.getUserId())
+                .userId(sendersWallet.get().getAccountHolderId())
                 .walletId(sendersWallet.get().getId())
                 .dateAndTimeForTransaction(date)
                 .Summary(transactionDone.getTransactionSummary())
@@ -465,6 +474,7 @@ public class UserServiceImpl implements UserService
     }
 
     @Override
+    @Transactional
     public String doKycDocumentation(KycDto kycDto) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
                 .getPrincipal();
@@ -472,26 +482,26 @@ public class UserServiceImpl implements UserService
         AccountUser user = userRepository.findByEmail(email).orElseThrow(() ->
                 new UserWithEmailNotFound("User with email not found"));
         {
-            Wallet userWallet = walletRepository.findByAccountHolderId(user.getId())
-                    .orElseThrow(() -> new UserWithEmailNotFound("Wallet user was not found"));
-
             KYC userKyc = kycRepository.findByAccountHolderId(user.getId());
 
-            if (userKyc.getBVN() == null)
+            if (Objects.equals(userKyc.getBVN(), ""))
             {
                 userKyc.setBVN(kycDto.getBVN());
             }
-            if (userKyc.getDriverLicence() == null)
+
+            if(Objects.equals(userKyc.getDriverLicence(), ""))
             {
                 userKyc.setDriverLicence(kycDto.getDriverLicence());
             }
-            if (userKyc.getPassportUrl() == null)
+
+            if(Objects.equals(userKyc.getPassportUrl(), ""))
             {
                 userKyc.setPassportUrl(kycDto.getPassportUrl());
             }
-            kycRepository.save(userKyc);
+
+                kycRepository.save(userKyc);
+            }
             return "KYC completed, wait for verification, validation and approval";
-        }
     }
 
     @Override
@@ -556,9 +566,9 @@ public class UserServiceImpl implements UserService
                 .transactionAmount(topUpDto.getAmount())
                 .transactionStatus(TransactionStatus.SUCCESSFUL)
                 .transactionType(TransactionType.DEPOSIT)
-//                .userId(topUpDto.getAccountHolderId())
                 .walletId(walletToTopUp.getId())
                 .dateAndTimeForTransaction(date)
+                .userId(walletToTopUp.getAccountHolderId())
                 .Summary(topUpDto.getTransactionSummary())
                 .build();
         transactionRepository.save(userTransaction);

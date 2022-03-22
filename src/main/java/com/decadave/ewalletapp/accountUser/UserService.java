@@ -24,7 +24,7 @@ public interface UserService
     List<AccountUser> AccountUsers();
     Transaction topUpWalletBalance(TopUpDto topUpDto);
     Transaction withdrawal(WithdrawalDto withdrawalDto);
-    TransactionDto transferMoney (TransferDto transferDto);
+    Transaction transferMoney (TransferDto transferDto);
     String changeTransactionPin (ChangeTransactionPinDto changeTransactionPinDto);
     String doKycDocumentation (KycDto kycDto);
     String kycApprovalByAdmin (KycAdminVerificationDto kycAdminVerificationDto);

@@ -14,5 +14,4 @@ public class KycDto {
     private String bVN;
     private String driverLicence;
     private String passportUrl;
-    private String approvedLevel;
 }

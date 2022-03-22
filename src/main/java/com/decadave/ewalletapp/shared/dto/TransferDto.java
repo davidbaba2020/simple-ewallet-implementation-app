@@ -12,7 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class TransferDto
 {
-    private Long accountHolderId;
     private Double amount;
     private String transactionSummary;
     private String transactionPin;

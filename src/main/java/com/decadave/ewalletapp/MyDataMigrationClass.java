@@ -1,23 +1,27 @@
 package com.decadave.ewalletapp;
 
 
+import com.decadave.ewalletapp.KYC.KYC;
 import com.decadave.ewalletapp.KYC.KYCEntity;
 import com.decadave.ewalletapp.KYC.KYCEntityRepository;
+import com.decadave.ewalletapp.KYC.KycDto;
 import com.decadave.ewalletapp.accountUser.AccountUser;
 import com.decadave.ewalletapp.accountUser.AccountUserRepository;
 import com.decadave.ewalletapp.role.Role;
 import com.decadave.ewalletapp.role.RoleRepository;
 import com.decadave.ewalletapp.shared.enums.Gender;
 import com.decadave.ewalletapp.shared.enums.TransactionLevel;
+import com.decadave.ewalletapp.shared.exceptions.UserWithEmailNotFound;
+import com.decadave.ewalletapp.shared.exceptions.kycUpdatedAlreadyException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.transaction.Transactional;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -112,3 +116,44 @@ public class MyDataMigrationClass
             kycEntityRepository.saveAll(usersKyc);
         }
 }
+
+
+//    @Override
+//    @Transactional
+//    public String doKycDocumentation(KycDto kycDto) {
+//        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
+//                .getPrincipal();
+//        String email = userDetails.getUsername();
+//        AccountUser user = userRepository.findByEmail(email).orElseThrow(() ->
+//                new UserWithEmailNotFound("User with email not found"));
+//        {
+//            KYC userKyc = kycRepository.findByAccountHolderId(user.getId());
+//
+//            if (Objects.equals(userKyc.getBVN(), "") || Objects.equals(userKyc.getBVN(),"string"))
+//            {
+//                userKyc.setBVN(kycDto.getBVN());
+//            }
+//            else
+//            {
+//                throw new kycUpdatedAlreadyException("Your BVN has been updated already, visit the admin for any changes required");
+//            }
+//            if(Objects.equals(userKyc.getDriverLicence(), "") || Objects.equals(userKyc.getDriverLicence(), "string"))
+//            {
+//                userKyc.setDriverLicence(kycDto.getDriverLicence());
+//            }
+//            else
+//            {
+//                throw new kycUpdatedAlreadyException("Your Driver Licence has been updated already, visit the admin for any changes required");
+//            }
+//            if(Objects.equals(userKyc.getPassportUrl(), "") || Objects.equals(userKyc.getPassportUrl(), "string"))
+//            {
+//                userKyc.setPassportUrl(kycDto.getPassportUrl());
+//            }
+//            else
+//            {
+//                throw new kycUpdatedAlreadyException("Your Passport has been updated already, visit the admin for any changes required");
+//            }
+//            kycRepository.save(userKyc);
+//        }
+//        return "KYC completed, wait for verification, validation and approval";
+//    }

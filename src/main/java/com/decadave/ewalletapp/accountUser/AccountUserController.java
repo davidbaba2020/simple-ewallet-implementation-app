@@ -29,9 +29,9 @@ public class AccountUserController
 
 
     @PostMapping("/user/create-account")
-    public ResponseEntity<HttpResponse> saveUsers (@RequestBody AccountUserDto accountUserDto)
+    public ResponseEntity<String> saveUsers (@RequestBody AccountUserDto accountUserDto)
     {
-        return response(HttpStatus.OK, userService.createAccountUser(accountUserDto));
+        return new ResponseEntity<>(userService.createAccountUser(accountUserDto), HttpStatus.OK);
     }
 
     @PutMapping("/user/top-up-wallet-balance")
@@ -47,7 +47,7 @@ public class AccountUserController
     }
 
     @PutMapping("/user/transfer-from-wallet")
-    public ResponseEntity<TransactionDto> transfer (@RequestBody TransferDto transferDto)
+    public ResponseEntity<Transaction> transfer (@RequestBody TransferDto transferDto)
     {
         return new ResponseEntity<>(userService.transferMoney(transferDto), HttpStatus.OK);
     }
@@ -60,9 +60,9 @@ public class AccountUserController
     }
 
     @PutMapping("/user/kyc-upgrade-level")
-    public ResponseEntity<String> doYourKycAndUpgradeLevel (@RequestBody KycDto kycDto)
+    public ResponseEntity<HttpResponse> doYourKycAndUpgradeLevel (@RequestBody KycDto kycDto)
     {
-        return new ResponseEntity<>(userService.doKycDocumentation(kycDto), HttpStatus.OK);
+        return response(HttpStatus.OK, userService.doKycDocumentation(kycDto));
     }
 
     @GetMapping("/my-account-summary")
