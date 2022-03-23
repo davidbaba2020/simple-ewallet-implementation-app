@@ -6,6 +6,7 @@ import com.decadave.ewalletapp.account.AccountRepository;
 import com.decadave.ewalletapp.role.Role;
 import com.decadave.ewalletapp.role.RoleDto;
 import com.decadave.ewalletapp.role.RoleRepository;
+import com.decadave.ewalletapp.shared.configuration.mail_sender.MailSenderImpl;
 import com.decadave.ewalletapp.shared.dto.TransferDto;
 import com.decadave.ewalletapp.shared.dto.ChangeTransactionPinDto;
 import com.decadave.ewalletapp.shared.dto.TopUpDto;
@@ -47,7 +48,8 @@ public class UserServiceImpl implements UserService
     private final KYCEntityRepository kycEntityRepository;
     private final TransactionRepository transactionRepository;
     private final PasswordEncoder passwordEncoder;
-    private  final ModelMapper mapper;
+    private final ModelMapper mapper;
+    private final MailSenderImpl mailSender;
 
     @Override
     public String createAccountUser(AccountUserDto userDto)
@@ -95,6 +97,20 @@ public class UserServiceImpl implements UserService
         userWallet.setAccountId(userAccountCreation.getId());
 
         walletRepository.save(userWallet);
+        String toSent = "A new account wallet with the following information has been created for you:"+
+                "Wallet Account Name: "+userAccountCreation.getAccountName()+""+
+                "Wallet Account Number: "+userWallet.getWalletAccountNumber()+""+
+                "Wallet Transaction pin: "+userWallet.getTransactionPin()+""+
+                "Wallet Account Email: "+userWallet.getAccountHolderEmail()+""+
+                "Wallet Account Opening Balance: "+userWallet.getWalletBalance()+""+
+                "Date Created: "+userWallet.getCreatedAt()+""+
+                "Thanks For Patronizing us";
+        mailSender.sendMail(
+                "davawallet@davacom.com",
+                userWallet.getAccountHolderEmail(),
+                "Account creation",
+                toSent
+        );
     }
 
     private KYC createAKycDirectoryForUser(AccountUser userAccountCreation)
@@ -212,6 +228,7 @@ public class UserServiceImpl implements UserService
                 if(topUpDto.getAmount()>=50 && topUpDto.getAmount()<=50000)
                 {
                     createTransactionSummary(walletToTopUp, topUpDto, transactionDone);
+                    SendTransactionEmail(topUpDto, user);
                 } else
                 {
                     throw new AmountTooSmallOrBiggerException("Amount to topUp cannot be less than N50 and Not more than 50000 ");
@@ -221,6 +238,7 @@ public class UserServiceImpl implements UserService
                 if(topUpDto.getAmount()>=50 && topUpDto.getAmount()<=1000000)
                 {
                     createTransactionSummary(walletToTopUp, topUpDto, transactionDone);
+                    SendTransactionEmail(topUpDto, user);
                 } else
                 {
                     throw new AmountTooSmallOrBiggerException("Amount to topUp cannot be less than N50 and Not more than 1000000 ");
@@ -230,6 +248,7 @@ public class UserServiceImpl implements UserService
                 if(topUpDto.getAmount()>=50 && topUpDto.getAmount()<=1000000000)
                 {
                     createTransactionSummary(walletToTopUp, topUpDto, transactionDone);
+                    SendTransactionEmail(topUpDto, user);
                 }
             } else
             {
@@ -237,12 +256,24 @@ public class UserServiceImpl implements UserService
             }
             String date = setDateAndTimeForTransaction();
             userTransaction = generateTransactionSummary(topUpDto, walletToTopUp.get(), date);
+
         } else
         {
             throw new WrongTransactionPin("You have entered a wrong transaction pin! ");
         }
 
         return userTransaction;
+    }
+
+    private void SendTransactionEmail(TopUpDto topUpDto, AccountUser user) {
+        mailSender.sendMail(
+                "davawallet@davacom.com",
+                user.getEmail(),
+                "Wallet Account Topup",
+                "Your Account Has been credited up with: " + topUpDto.getAmount()+
+                        "On: " + new Date()+
+                        "Summary: "+ topUpDto.getTransactionSummary()
+        );
     }
 
 
@@ -280,6 +311,7 @@ public class UserServiceImpl implements UserService
                 if(withdrawalDto.getAmount()>=1000 && withdrawalDto.getAmount()<=20000)
                 {
                     transactionToBeDone = getWithdrawalSummary(sendersWallet, transactionSummary, withdrawalDto);
+                    sendWithdrawalEmail(withdrawalDto, user);
                 } else
                 {
                     throw new AmountTooSmallOrBiggerException("Amount to Withdraw cannot be less than N1000 and Not more than 20000");
@@ -289,6 +321,7 @@ public class UserServiceImpl implements UserService
                 if(withdrawalDto.getAmount()>=1000 && withdrawalDto.getAmount()<=700000)
                 {
                     transactionToBeDone = getWithdrawalSummary(sendersWallet, transactionSummary, withdrawalDto);
+                    sendWithdrawalEmail(withdrawalDto, user);
                 } else
                 {
                     throw new AmountTooSmallOrBiggerException("Amount to Withdraw cannot be less than N1000 and Not more than 700000 ");
@@ -298,6 +331,7 @@ public class UserServiceImpl implements UserService
                 if(withdrawalDto.getAmount()>=50 && withdrawalDto.getAmount()<=20000000)
                 {
                     transactionToBeDone = getWithdrawalSummary(sendersWallet, transactionSummary, withdrawalDto);
+                    sendWithdrawalEmail(withdrawalDto, user);
                 }
             } else {
                 throw new AmountTooSmallOrBiggerException("Amount to Withdraw cannot be less than N1000 and Not more than 20000000");
@@ -308,6 +342,17 @@ public class UserServiceImpl implements UserService
 
         }
         return transactionToBeDone;
+    }
+
+    private void sendWithdrawalEmail(WithdrawalDto withdrawalDto, AccountUser user) {
+        mailSender.sendMail(
+                "davawallet@davacom.com",
+                user.getEmail(),
+                "Wallet Account Topup",
+                "Your Account Has been credited up with: " + withdrawalDto.getAmount()+
+                        "On: " + new Date()+
+                        "Summary: "+ withdrawalDto.getTransactionSummary()
+        );
     }
 
     @Override
